@@ -5,9 +5,9 @@ import {
 } from '../../../src/simulation/simulatuion';
 
 describe('SimulationRateLimiter', () => {
-  const startCallback = jest.fn();
-  const scoreCallback = jest.fn();
-  const finishCallback = jest.fn();
+  const onStarted = jest.fn();
+  const onScore = jest.fn();
+  const onFinished = jest.fn();
 
   let simulation: Simulation;
   let scores = 9;
@@ -21,19 +21,19 @@ describe('SimulationRateLimiter', () => {
     simulation.removeAllListeners();
     simulation.finish();
 
-    startCallback.mockReset();
-    scoreCallback.mockReset();
-    finishCallback.mockReset();
+    onStarted.mockReset();
+    onScore.mockReset();
+    onFinished.mockReset();
   });
 
-  it('should finish simulation', async () => {
+  test('should finish simulation', async () => {
     const initialSimulationData = simulation.toJSON();
 
-    simulation.on(SimulationEvent.STARTED, startCallback);
-    simulation.on(SimulationEvent.SCORE, scoreCallback);
+    simulation.on(SimulationEvent.STARTED, onStarted);
+    simulation.on(SimulationEvent.SCORE, onScore);
     const simulationFinish = new Promise((resolve) => {
       simulation.on(SimulationEvent.FINISHED, () => {
-        finishCallback();
+        onFinished();
         resolve(0);
       });
     });
@@ -43,11 +43,11 @@ describe('SimulationRateLimiter', () => {
     // wait until simulation is done
     await simulationFinish;
 
-    expect(startCallback).toBeCalledTimes(1);
-    expect(startCallback.mock.calls[0][0]).toStrictEqual(initialSimulationData);
+    expect(onStarted).toBeCalledTimes(1);
+    expect(onStarted.mock.calls[0][0]).toStrictEqual(initialSimulationData);
 
-    expect(scoreCallback).toBeCalledTimes(scores);
-    scoreCallback.mock.calls.forEach((call) =>
+    expect(onScore).toBeCalledTimes(scores);
+    onScore.mock.calls.forEach((call) =>
       expect(call[0]).toStrictEqual<ScoreData>({
         simulationId: simulation.id,
         matchId: expect.any(String),
@@ -56,17 +56,17 @@ describe('SimulationRateLimiter', () => {
       }),
     );
 
-    expect(finishCallback).toBeCalledTimes(1);
+    expect(onFinished).toBeCalledTimes(1);
   });
 
-  it('should start simulation only once', async () => {
+  test('should start simulation only once', async () => {
     const initialSimulationData = simulation.toJSON();
 
-    simulation.on(SimulationEvent.STARTED, startCallback);
-    simulation.on(SimulationEvent.SCORE, scoreCallback);
+    simulation.on(SimulationEvent.STARTED, onStarted);
+    simulation.on(SimulationEvent.SCORE, onScore);
     const simulationFinish = new Promise((resolve) => {
       simulation.on(SimulationEvent.FINISHED, () => {
-        finishCallback();
+        onFinished();
         resolve(0);
       });
     });
@@ -79,11 +79,11 @@ describe('SimulationRateLimiter', () => {
     // wait until simulation is done
     await simulationFinish;
 
-    expect(startCallback).toBeCalledTimes(1);
-    expect(startCallback.mock.calls[0][0]).toStrictEqual(initialSimulationData);
+    expect(onStarted).toBeCalledTimes(1);
+    expect(onStarted.mock.calls[0][0]).toStrictEqual(initialSimulationData);
 
-    expect(scoreCallback).toBeCalledTimes(scores);
-    scoreCallback.mock.calls.forEach((call) =>
+    expect(onScore).toBeCalledTimes(scores);
+    onScore.mock.calls.forEach((call) =>
       expect(call[0]).toStrictEqual<ScoreData>({
         simulationId: simulation.id,
         matchId: expect.any(String),
@@ -92,6 +92,6 @@ describe('SimulationRateLimiter', () => {
       }),
     );
 
-    expect(finishCallback).toBeCalledTimes(1);
+    expect(onFinished).toBeCalledTimes(1);
   });
 });
