@@ -1,33 +1,25 @@
-import z from 'zod';
+import { Transform, TransformFnParams } from 'class-transformer';
+import { IsString, IsUUID, Length, Matches } from 'class-validator';
 
-export type SimulationConnectionQuery = {
+export class StartSimulationDto {
+  @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @Length(8, 30)
+  @Matches(/^[a-z0-9 ]+$/i, {
+    message:
+      '"name" should have minimum 8 characters, maximum 30 characters, only digits, whitespaces or alphabetic characters',
+  })
   name: string;
-  clientId: string;
-};
+}
 
-const simulationNameSchema = z
-  .string()
-  .trim()
-  .refine(
-    (val) => {
-      if (val.length < 8 || val.length > 30) {
-        return false;
-      }
+export class FinishSimulationDto {
+  @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
+  @IsUUID('4')
+  id: string;
+}
 
-      const matchResult = val.match(/^[a-z0-9 ]+$/i);
-      if (!matchResult || matchResult.length < 1) {
-        return false;
-      }
-
-      return true;
-    },
-    {
-      message:
-        '"name" should have minimum 8 characters, maximum 30 characters, only digits, whitespaces or alphabetic characters',
-    },
-  );
-
-export const simulationConnectionQuerySchema = z.object({
-  name: simulationNameSchema,
-  clientId: z.string().uuid(),
-}) satisfies z.ZodType<SimulationConnectionQuery>;
+export enum GatewayEvents {
+  Start = 'start',
+  Finish = 'finish',
+}

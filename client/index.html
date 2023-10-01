@@ -6,7 +6,25 @@
         crossorigin="anonymous"></script>
     <script>
 
-        let socket;
+        let socket = io('http://localhost:3000', {
+            path: `/simulations`,
+        });
+        socket
+            .on('connect', function () {
+                addRecord('Connected');
+            })
+            .on('exception', function (data) {
+                addRecord(`Received exception: ${JSON.stringify(data, null, 1)}`);
+            })
+            .on('disconnect', function () {
+                addRecord('Disconnected');
+            })
+            .on('started', function ({ id, name }) {
+                simulationId = id;
+                addRecord(`Simulation "${name}" started`);
+            }).on('finished', ({ id }) => {
+                addRecord(`Simulation ${id} finished`);
+            })
 
         function addRecord(text) {
             const node = document.createElement('li');
@@ -17,38 +35,15 @@
             list.appendChild(node);
         }
 
+
         function startSimulation() {
-            if (socket?.connected) {
-                socket.disconnect(true);
-            }
-
             let simulationName = document.getElementById('simulation-name').value;
-            let clientId = document.getElementById('client-id').value || '089d1f1f-88f7-474a-80c1-e3675325e8d0';
 
-            socket = io('http://localhost:3000', {
-                path: `/simulations`,
-                query: {
-                    name: simulationName,
-                    clientId,
-                }
-            });
-
-            socket.on('connect', function () {
-                addRecord('Connected');
-            });
-            socket.on('exception', function (data) {
-                addRecord(`Received exception: ${JSON.stringify(data, null, 1)}`);
-            });
-            socket.on('disconnect', function () {
-                addRecord('Disconnected');
-            });
-            socket.on('hello', function (data) {
-                addRecord(`hello, ${data}`);
-            });
+            socket.emit('start', { name: simulationName })
         }
 
         function finishSimulation() {
-            socket.disconnect(true);
+            socket.emit('finish', { id: simulationId })
         }
 
     </script>
@@ -56,7 +51,6 @@
 
 <body>
     <input type="text" placeholder="name" id="simulation-name">
-    <input type="text" placeholder="client id" id="client-id">
     <button onclick="startSimulation()">Start simulation</button>
     <button onclick="finishSimulation()">Finish simulation</button>
     <ul id="log"></ul>
