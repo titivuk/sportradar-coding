@@ -22,11 +22,14 @@
                 socket.disconnect(true);
             }
 
+            let simulationName = document.getElementById('simulation-name').value;
+            let clientId = document.getElementById('client-id').value || '089d1f1f-88f7-474a-80c1-e3675325e8d0';
+
             socket = io('http://localhost:3000', {
                 path: `/simulations`,
                 query: {
-                    name: "simulation-name",
-                    clientId: "089d1f1f-88f7-474a-80c1-e3675325e8d0",
+                    name: simulationName,
+                    clientId,
                 }
             });
 
@@ -52,6 +55,8 @@
 </head>
 
 <body>
+    <input type="text" placeholder="name" id="simulation-name">
+    <input type="text" placeholder="client id" id="client-id">
     <button onclick="startSimulation()">Start simulation</button>
     <button onclick="finishSimulation()">Finish simulation</button>
     <ul id="log"></ul>
