@@ -6,9 +6,13 @@
         crossorigin="anonymous"></script>
     <script>
 
+        let simulationId = '';
+        let currMatches = [];
+
         let socket = io('http://localhost:3000', {
             path: `/simulations`,
         });
+
         socket
             .on('connect', function () {
                 addRecord('Connected');
@@ -19,10 +23,22 @@
             .on('disconnect', function () {
                 addRecord('Disconnected');
             })
-            .on('started', function ({ id, name }) {
+            .on('started', function ({ id, name, matches }) {
                 simulationId = id;
                 addRecord(`Simulation "${name}" started`);
-            }).on('finished', ({ id }) => {
+                addMatches(matches);
+            })
+            .on('score', (data) => {
+                currMatches
+                    .find((m) => m.id === data.matchId)
+                    .teams
+                    .find((t) => t.id === data.teamId)
+                    .score = data.score;
+
+                addMatches(currMatches);
+                addRecord(`Received event "update": ${JSON.stringify(data, null, 1)}`);
+            })
+            .on('finished', ({ id }) => {
                 addRecord(`Simulation ${id} finished`);
             })
 
@@ -35,10 +51,30 @@
             list.appendChild(node);
         }
 
+        function addMatches(matches) {
+            currMatches = matches;
+
+            const table = document.getElementById('matches');
+
+            table.innerHTML = '';
+
+            for (const match of currMatches) {
+                const matchRow = document.createElement('tr');
+
+                const matchName = document.createElement('td');
+                matchName.appendChild(document.createTextNode(match.name))
+                matchRow.appendChild(matchName);
+
+                const matchScore = document.createElement('td');
+                matchScore.appendChild(document.createTextNode(`${match.teams[0].score}:${match.teams[1].score}`))
+                matchRow.appendChild(matchScore);
+
+                table.appendChild(matchRow);
+            }
+        }
 
         function startSimulation() {
             let simulationName = document.getElementById('simulation-name').value;
-
             socket.emit('start', { name: simulationName })
         }
 
@@ -53,6 +89,7 @@
     <input type="text" placeholder="name" id="simulation-name">
     <button onclick="startSimulation()">Start simulation</button>
     <button onclick="finishSimulation()">Finish simulation</button>
+    <table id="matches"></table>
     <ul id="log"></ul>
 </body>
 
