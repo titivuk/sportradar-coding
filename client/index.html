@@ -1,0 +1,60 @@
+<html>
+
+<head>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+        integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+        crossorigin="anonymous"></script>
+    <script>
+
+        let socket;
+
+        function addRecord(text) {
+            const node = document.createElement('li');
+            const textNode = document.createTextNode(text);
+            node.appendChild(textNode);
+
+            const list = document.getElementById('log');
+            list.appendChild(node);
+        }
+
+        function startSimulation() {
+            if (socket?.connected) {
+                socket.disconnect(true);
+            }
+
+            socket = io('http://localhost:3000', {
+                path: `/simulations`,
+                query: {
+                    name: "simulation-name",
+                    clientId: "089d1f1f-88f7-474a-80c1-e3675325e8d0",
+                }
+            });
+
+            socket.on('connect', function () {
+                addRecord('Connected');
+            });
+            socket.on('exception', function (data) {
+                addRecord(`Received exception: ${JSON.stringify(data, null, 1)}`);
+            });
+            socket.on('disconnect', function () {
+                addRecord('Disconnected');
+            });
+            socket.on('hello', function (data) {
+                addRecord(`hello, ${data}`);
+            });
+        }
+
+        function finishSimulation() {
+            socket.disconnect(true);
+        }
+
+    </script>
+</head>
+
+<body>
+    <button onclick="startSimulation()">Start simulation</button>
+    <button onclick="finishSimulation()">Finish simulation</button>
+    <ul id="log"></ul>
+</body>
+
+</html>
