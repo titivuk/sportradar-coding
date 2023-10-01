@@ -1,4 +1,9 @@
-import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  UseFilters,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,15 +13,22 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 
+import { Throttle } from '@nestjs/throttler';
 import { HttpToWsExceptionsFilter } from '../shared/http-to-ws.exception-filter';
 import { throwException } from '../shared/throw-exception';
+import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import {
   FinishSimulationDto,
   GatewayEvents,
   StartSimulationDto,
 } from './contracts';
 import { SimulationRegistry } from './simulation-registry';
-import { ScoreData, SimulationData, SimulationEvent } from './simulatuion';
+import {
+  ScoreData,
+  Simulation,
+  SimulationData,
+  SimulationEvent,
+} from './simulatuion';
 
 @UseFilters(new HttpToWsExceptionsFilter())
 @WebSocketGateway({
@@ -34,12 +46,14 @@ export class SimulationGateway {
       whitelist: true,
     }),
   )
+  @UseGuards(WsThrottlerGuard)
+  @Throttle({ default: { limit: 1, ttl: 5 * 6e3 } })
   @SubscribeMessage(GatewayEvents.Start)
   handleStart(
     @MessageBody() data: StartSimulationDto,
     @ConnectedSocket() socket: Socket,
   ) {
-    const simulation = this.simulationRegistry.createSimulation(data.name);
+    const simulation = new Simulation(data.name);
 
     simulation.on(SimulationEvent.STARTED, (data: SimulationData) =>
       socket.emit(SimulationEvent.STARTED, data),
@@ -50,6 +64,8 @@ export class SimulationGateway {
     simulation.on(SimulationEvent.FINISHED, () => {
       socket.emit(SimulationEvent.FINISHED, { id: simulation.id });
     });
+
+    this.simulationRegistry.registerSimulation(simulation);
 
     simulation.start();
 

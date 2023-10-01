@@ -8,8 +8,7 @@ export class SimulationRegistry {
     return SimulationRegistry.simulations;
   }
 
-  createSimulation(name: string): Simulation {
-    const simulation = new Simulation(name);
+  registerSimulation(simulation: Simulation): Simulation {
     simulation.on(SimulationEvent.FINISHED, () =>
       this.removeSimulation(simulation.id),
     );
